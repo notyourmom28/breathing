@@ -1,0 +1,815 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Breathing Config Generator</title>
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&family=JetBrains+Mono:wght@500&display=swap" rel="stylesheet">
+    <style>
+        :root {
+            /* Palette - Premium Studio Style */
+            --bg-canvas: #ffffff; /* Changed to White */
+
+            --panel-bg: #ffffff;
+            --panel-border: #e2e4e7;
+            --panel-shadow: 0 12px 32px rgba(0, 0, 0, 0.08), 0 2px 6px rgba(0, 0, 0, 0.04);
+
+            --input-bg: #f3f4f6;
+            --input-hover: #eaeaec;
+            --input-border: transparent;
+            --input-focus-border: #000000;
+
+            --text-primary: #111827;
+            --text-secondary: #6b7280;
+            --text-tertiary: #9ca3af;
+
+            --accent: #2563eb;
+            --accent-hover: #1d4ed8;
+            --accent-light: #eff6ff;
+
+            --btn-copy-bg: #1a73e8; /* Google Blue */
+            --btn-copy-hover: #1557b0;
+
+            --danger: #ef4444;
+            --danger-bg: #fef2f2;
+
+            --radius-xl: 16px;
+            --radius-lg: 12px;
+            --radius-md: 8px;
+            --radius-sm: 6px;
+        }
+
+        * { box-sizing: border-box; outline: none; -webkit-font-smoothing: antialiased; }
+
+        body {
+            margin: 0; padding: 0;
+            background-color: var(--bg-canvas);
+            font-family: 'Inter', sans-serif;
+            color: var(--text-primary);
+            overflow: hidden;
+            height: 100vh; width: 100vw;
+            /* Disable text selection globally */
+            user-select: none;
+            -webkit-user-select: none;
+        }
+
+        /* Re-enable selection for inputs and text areas so they remain usable */
+        input, textarea {
+            user-select: text;
+            -webkit-user-select: text;
+        }
+
+        /* --- Canvas Viewport --- */
+        #viewport {
+            position: fixed; top: 0; left: 0; width: 100%; height: 100%;
+            display: flex; justify-content: center; align-items: center;
+            /* Subtle grid for professional feel - Darker lines for white BG */
+            background-image:
+                linear-gradient(rgba(0,0,0,0.03) 1px, transparent 1px),
+                linear-gradient(90deg, rgba(0,0,0,0.03) 1px, transparent 1px);
+            background-size: 40px 40px;
+            z-index: 1;
+            overflow: hidden;
+        }
+
+        canvas {
+            max-width: 100%; max-height: 100%;
+            object-fit: contain;
+            /* Sharp shadow for canvas isolation */
+            box-shadow: 0 0 0 1px rgba(0,0,0,0.05), 0 20px 60px rgba(0,0,0,0.1);
+        }
+
+        #toast {
+            position: absolute; top: 24px; left: 50%; transform: translateX(-50%);
+            background: #ffffff; /* White background */
+            padding: 10px 24px; border-radius: 30px;
+            font-size: 0.9rem; font-weight: 600; color: var(--text-primary);
+            box-shadow: 0 8px 20px rgba(0,0,0,0.15), 0 0 0 1px rgba(0,0,0,0.1);
+            z-index: 50; pointer-events: none; opacity: 1; transition: opacity 0.5s;
+            display: flex; align-items: center; gap: 10px;
+            white-space: nowrap;
+        }
+
+        /* --- Sidebar Panel --- */
+        #sidebar {
+            position: fixed;
+            background: var(--panel-bg);
+            display: flex; flex-direction: column;
+            z-index: 100;
+            box-shadow: var(--panel-shadow);
+            border-left: 1px solid var(--panel-border);
+            border-right: 1px solid var(--panel-border);
+            font-size: 0.9rem;
+            transition: height 0.3s, width 0.3s, top 0.3s, right 0.3s, left 0.3s;
+        }
+
+        /* No Margin: Flush against the edge */
+        #sidebar.fixed-right {
+            top: 0; right: 0; bottom: 0; width: 360px;
+            border-radius: 0;
+            border-top: none; border-bottom: none; border-right: none;
+        }
+        #sidebar.fixed-left {
+            top: 0; left: 0; bottom: 0; width: 360px;
+            border-radius: 0;
+            border-top: none; border-bottom: none; border-left: none;
+        }
+        #sidebar.floating {
+            width: 340px; height: 650px;
+            border-radius: var(--radius-xl);
+            min-width: 320px; min-height: 400px;
+            border: 1px solid var(--panel-border);
+        }
+
+        /* --- Header --- */
+        .header {
+            flex-shrink: 0;
+            padding: 18px 24px;
+            border-bottom: 1px solid var(--panel-border);
+            display: flex; justify-content: space-between; align-items: center;
+            background: #fff;
+        }
+        #sidebar.floating .header { cursor: grab; border-radius: var(--radius-xl) var(--radius-xl) 0 0; }
+        #sidebar.floating .header:active { cursor: grabbing; }
+
+        .app-branding { display: flex; align-items: center; gap: 8px; }
+        .title { font-weight: 700; font-size: 0.95rem; color: var(--text-primary); letter-spacing: -0.01em; }
+
+        .win-controls { display: flex; gap: 4px; background: var(--input-bg); padding: 3px; border-radius: 8px; }
+        .win-btn {
+            width: 28px; height: 28px; border-radius: 6px; border: none;
+            background: transparent; color: var(--text-secondary);
+            display: flex; align-items: center; justify-content: center;
+            cursor: pointer; transition: 0.2s;
+        }
+        .win-btn:hover { background: #fff; color: var(--text-primary); box-shadow: 0 1px 2px rgba(0,0,0,0.1); }
+        .win-btn svg { width: 18px; height: 18px; fill: currentColor; }
+
+        /* --- Scrollable Content --- */
+        .content {
+            flex: 1;
+            overflow-y: auto;
+            padding: 0 24px 24px 24px;
+        }
+        /* Custom Scrollbar */
+        .content::-webkit-scrollbar { width: 6px; }
+        .content::-webkit-scrollbar-track { background: transparent; }
+        .content::-webkit-scrollbar-thumb { background: #d1d5db; border-radius: 10px; }
+        .content::-webkit-scrollbar-thumb:hover { background: #9ca3af; }
+
+        .section {
+            padding: 24px 0;
+            border-bottom: 1px solid var(--panel-border);
+        }
+        .section:last-of-type { border-bottom: none; }
+
+        .section-header {
+            display: flex; justify-content: space-between; align-items: center;
+            margin-bottom: 16px;
+        }
+        .section-label {
+            font-size: 0.75rem; text-transform: uppercase; font-weight: 700;
+            color: var(--text-secondary); letter-spacing: 0.05em;
+        }
+
+        /* --- Inputs & Controls --- */
+
+        /* Unified Color Row (Used for BG and Overlay) */
+        .color-row {
+            display: flex; align-items: center; gap: 12px; margin-bottom: 12px;
+        }
+
+        /* Old School Color Wheel Design */
+        .color-wheel-btn {
+            width: 44px; height: 44px; border-radius: 50%;
+            background: conic-gradient(from 90deg, red, yellow, lime, aqua, blue, magenta, red);
+            border: 2px solid #fff; box-shadow: 0 0 0 1px #e5e5ea;
+            position: relative; overflow: hidden; flex-shrink: 0; cursor: pointer;
+            transition: transform 0.1s;
+        }
+        .color-wheel-btn:hover { transform: scale(1.05); }
+        .color-wheel-btn input {
+            position: absolute; width: 200%; height: 200%; top: -50%; left: -50%; opacity: 0; cursor: pointer;
+        }
+
+        .input-group-row { flex: 1; display: flex; gap: 8px; }
+
+        .text-input {
+            flex: 1; padding: 0 12px; height: 40px; border-radius: var(--radius-md);
+            border: 1px solid var(--input-border); background: var(--input-bg);
+            font-family: 'JetBrains Mono', monospace; font-size: 0.85rem;
+            color: var(--text-primary); transition: 0.2s;
+        }
+        .text-input:hover { background: var(--input-hover); }
+        .text-input:focus { background: #fff; border-color: var(--input-focus-border); box-shadow: 0 0 0 3px rgba(0,0,0,0.05); }
+
+        /* Swatches */
+        .swatch-grid { display: flex; gap: 10px; flex-wrap: wrap; margin-top: 12px; }
+        .swatch {
+            width: 36px; height: 36px; border-radius: var(--radius-md);
+            border: 1px solid rgba(0,0,0,0.08); cursor: pointer;
+            position: relative; overflow: hidden;
+            transition: transform 0.2s, box-shadow 0.2s;
+        }
+        .swatch:hover { transform: translateY(-2px); box-shadow: 0 4px 10px rgba(0,0,0,0.1); }
+        /* Checkmark for active swatch */
+        .swatch.active::after {
+            content: ''; position: absolute; inset: 0;
+            background: url('data:image/svg+xml;utf8,<svg fill="white" viewBox="0 0 24 24" xmlns="http://www.w3.org/2000/svg"><path d="M9 16.17L4.83 12l-1.42 1.41L9 19 21 7l-1.41-1.41z"/></svg>') center/18px no-repeat;
+            text-shadow: 0 1px 2px rgba(0,0,0,0.3);
+        }
+
+        /* Range Sliders */
+        .slider-container { margin-top: 24px; }
+        .slider-header { display: flex; justify-content: space-between; margin-bottom: 10px; align-items: baseline; }
+        .slider-label { font-size: 0.85rem; font-weight: 600; color: var(--text-primary); }
+        .slider-val { font-size: 0.8rem; color: var(--text-secondary); font-variant-numeric: tabular-nums; background: var(--input-bg); padding: 2px 6px; border-radius: 4px; }
+
+        input[type="range"] {
+            -webkit-appearance: none; width: 100%; height: 6px;
+            background: #e5e7eb; border-radius: 3px; display: block;
+        }
+        input[type="range"]::-webkit-slider-thumb {
+            -webkit-appearance: none; width: 18px; height: 18px; border-radius: 50%;
+            background: var(--accent); /* Blue Color Handle */
+            box-shadow: 0 2px 4px rgba(37, 99, 235, 0.4);
+            border: 2px solid #fff;
+            cursor: pointer; transition: transform 0.15s, box-shadow 0.15s; margin-top: -6px; /* Align center */
+        }
+        input[type="range"]::-webkit-slider-runnable-track { height: 6px; border-radius: 3px; }
+        input[type="range"]:focus::-webkit-slider-thumb { box-shadow: 0 0 0 4px rgba(37, 99, 235, 0.2); }
+        input[type="range"]::-webkit-slider-thumb:hover { transform: scale(1.1); }
+
+        /* Presets & Actions Buttons */
+        .btn-sm-action {
+            background: #ffffff;
+            color: var(--accent);
+            border: 1px solid var(--panel-border);
+            font-size: 0.75rem;
+            font-weight: 600;
+            cursor: pointer;
+            padding: 6px 12px;
+            border-radius: var(--radius-md);
+            transition: all 0.2s ease;
+            box-shadow: 0 1px 2px rgba(0,0,0,0.05);
+        }
+        .btn-sm-action:hover {
+            background: var(--accent-light);
+            border-color: var(--accent);
+            transform: translateY(-1px);
+            box-shadow: 0 2px 4px rgba(0,0,0,0.08);
+        }
+
+        .preset-list { display: flex; flex-direction: column; gap: 8px; margin-bottom: 16px; }
+        .preset-item {
+            display: flex; align-items: center; padding: 10px 12px;
+            background: #fff; border: 1px solid var(--panel-border); border-radius: var(--radius-md);
+            cursor: pointer; transition: 0.15s;
+        }
+        .preset-item:hover { border-color: var(--accent); background: #fafafa; }
+        .preset-item.active { background: var(--accent-light); border-color: var(--accent); box-shadow: 0 0 0 1px var(--accent) inset; }
+
+        .radio-indicator {
+            width: 16px; height: 16px; border-radius: 50%; border: 1.5px solid #d1d5db;
+            margin-right: 12px; position: relative; transition: 0.2s; flex-shrink: 0;
+        }
+        .preset-item.active .radio-indicator { border-color: var(--accent); background: var(--accent); }
+        .preset-item.active .radio-indicator::after {
+            content: ''; position: absolute; width: 6px; height: 6px; background: #fff;
+            top: 50%; left: 50%; transform: translate(-50%, -50%); border-radius: 50%;
+        }
+
+        .preset-name { font-size: 0.9rem; font-weight: 500; flex: 1; }
+        .btn-icon-only {
+            width: 28px; height: 28px; border: none; background: transparent;
+            color: var(--text-tertiary); border-radius: 4px; display: flex; align-items: center; justify-content: center;
+            cursor: pointer;
+        }
+        .btn-icon-only:hover { background: var(--danger-bg); color: var(--danger); }
+
+        /* Timings Grid */
+        .timing-grid {
+            display: grid; grid-template-columns: 1fr 1fr; gap: 12px;
+            background: var(--input-bg); padding: 16px; border-radius: var(--radius-lg);
+        }
+        .t-group label { display: block; font-size: 0.7rem; text-transform: uppercase; color: var(--text-secondary); margin-bottom: 6px; font-weight: 700; letter-spacing: 0.5px; }
+        .t-group input {
+            width: 100%; padding: 8px; border-radius: var(--radius-sm); border: 1px solid var(--panel-border);
+            font-size: 0.9rem;
+            text-align: left; /* Left aligned as requested */
+            font-weight: 500; color: var(--text-primary);
+        }
+        .t-group input:focus { border-color: var(--accent); box-shadow: 0 0 0 2px rgba(37,99,235,0.1); }
+
+        /* Code Output Area */
+        .code-display-area {
+            background: #f8fafc; /* White-tone */
+            color: #334155; /* Darker text */
+            padding: 16px; border-radius: var(--radius-lg);
+            font-family: 'JetBrains Mono', monospace; font-size: 0.75rem;
+            width: 100%; min-height: 160px; /* Increased min-height */
+            border: 1px solid var(--panel-border);
+            resize: vertical; /* Allow vertical resizing */
+            white-space: pre; overflow-x: auto;
+            line-height: 1.5;
+        }
+        .code-display-area::-webkit-scrollbar { width: 8px; height: 8px; }
+        .code-display-area::-webkit-scrollbar-corner { background: transparent; }
+        .code-display-area::-webkit-scrollbar-thumb { background: #cbd5e1; border-radius: 4px; }
+
+        /* --- Footer --- */
+        .footer {
+            flex-shrink: 0; padding: 20px 24px;
+            background: #fff; border-top: 1px solid var(--panel-border);
+        }
+        #sidebar.floating .footer { border-radius: 0 0 var(--radius-xl) var(--radius-xl); }
+
+        .btn-primary {
+            width: 100%; background: var(--btn-copy-bg); color: white;
+            border: none; padding: 12px; border-radius: var(--radius-md);
+            font-weight: 600; font-size: 0.9rem; cursor: pointer;
+            transition: 0.2s; display: flex; align-items: center; justify-content: center; gap: 8px;
+            box-shadow: 0 4px 6px rgba(0,0,0,0.05);
+        }
+        .btn-primary:hover { background: var(--btn-copy-hover); transform: translateY(-1px); box-shadow: 0 6px 12px rgba(0,0,0,0.1); }
+        .btn-primary:active { transform: translateY(0); }
+        .btn-primary.success { background: #10b981; }
+
+        /* Utility */
+        .hidden-input { display: none; }
+        .toggle-row { display: flex; justify-content: space-between; align-items: center; margin-top: 20px; }
+
+        /* Checkbox Style */
+        .chk-container { display: flex; align-items: center; gap: 10px; cursor: pointer; }
+        input[type="checkbox"] {
+            width: 18px; height: 18px; accent-color: var(--accent); cursor: pointer;
+            transform: scale(1.1);
+        }
+
+    </style>
+</head>
+<body>
+
+    <div id="viewport">
+        <canvas id="canvas"></canvas>
+        <div id="toast">
+            <!-- Upload Icon -->
+            <svg height="20" viewBox="0 -960 960 960" width="20" fill="currentColor"><path d="M440-320v-326L336-542l-56-58 200-200 200 200-56 58-104-104v326h-80ZM240-160q-33 0-56.5-23.5T160-240v-120h80v120h480v-120h80v120q0 33-23.5 56.5T720-160H240Z"/></svg>
+            <span>Paste (Ctrl+V) or Drop a screenshot to preview</span>
+        </div>
+    </div>
+
+    <div id="sidebar" class="fixed-right">
+
+        <!-- HEADER -->
+        <div class="header" id="panel-header">
+            <div class="app-branding">
+                <span class="title">Breathing Config</span>
+            </div>
+            <div class="win-controls">
+                <!-- MD3 Icon: Left Panel Close -->
+                <button class="win-btn" onclick="setMode('left')" title="Dock Left">
+                    <svg viewBox="0 -960 960 960"><path d="M160-200v-560h80v560h-80Zm160 0v-560h480v560H320Zm80-80h320v-400H400v400Z"/></svg>
+                </button>
+                <!-- MD3 Icon: Right Panel Close -->
+                <button class="win-btn" onclick="setMode('right')" title="Dock Right">
+                    <svg viewBox="0 -960 960 960"><path d="M720-200v-560h80v560h-80Zm-560 0v-560h480v560H160Zm80-80h320v-400H240v400Z"/></svg>
+                </button>
+                <!-- MD3 Icon: Open in New / Float -->
+                <button class="win-btn" onclick="setMode('float')" title="Floating">
+                    <svg viewBox="0 -960 960 960"><path d="M200-120q-33 0-56.5-23.5T120-200v-560q0-33 23.5-56.5T200-840h280v80H200v560h560v-280h80v280q0 33-23.5 56.5T760-120H200Zm188-212-56-56 372-372H560v-80h280v280h-80v-144L388-332Z"/></svg>
+                </button>
+            </div>
+        </div>
+
+        <!-- SCROLLABLE CONTENT -->
+        <div class="content">
+
+            <!-- Background Section -->
+            <div class="section">
+                <div class="section-header">
+                    <span class="section-label">Background</span>
+                    <button class="btn-sm-action" onclick="document.getElementById('fileInput').click()">Upload Screenshot</button>
+                    <input type="file" id="fileInput" class="hidden-input" accept="image/*">
+                </div>
+
+                <!-- Color Picker: Standard Wheel Design -->
+                <div class="color-row">
+                    <div class="color-wheel-btn">
+                        <input type="color" id="bgColorPicker" oninput="setBgColor(this.value)">
+                    </div>
+                    <input type="text" class="text-input" id="bgHex" onchange="setBgColor(this.value)" value="#FFFFFF">
+                </div>
+
+                <!-- Quick Swatches -->
+                <div class="swatch-grid">
+                    <div class="swatch" style="background:#ffffff; border-color:#e5e5e5" onclick="setBgColor('#ffffff')"></div>
+                    <div class="swatch" style="background:#18181b" onclick="setBgColor('#18181b')"></div>
+                    <div class="swatch" style="background:#000000" onclick="setBgColor('#000000')"></div>
+                </div>
+            </div>
+
+            <!-- Visuals Section -->
+            <div class="section">
+                <div class="section-header">
+                    <span class="section-label">Overlay & Color</span>
+                </div>
+
+                <!-- Color Row -->
+                <div class="color-row">
+                    <div class="color-wheel-btn">
+                        <input type="color" id="appColorPicker" oninput="setAppColor(this.value)">
+                    </div>
+                    <input type="text" class="text-input" id="appHex" onchange="setAppColor(this.value)" value="#1A73E8">
+                </div>
+
+                <!-- Vibrant Swatches -->
+                <div class="swatch-grid">
+
+					<div class="swatch" style="background:#1a73e8" onclick="setAppColor('#1a73e8')">G</div> <!-- Google Blue -->
+					<div class="swatch" style="background:#007aff" onclick="setAppColor('#007aff')"></div> <!-- Blue -->
+					<div class="swatch" style="background:#af52de" onclick="setAppColor('#af52de')"></div> <!-- Purple -->
+					<div class="swatch" style="background:#ff2d55" onclick="setAppColor('#ff2d55')"></div> <!-- Pink -->
+					<div class="swatch" style="background:#ff9500" onclick="setAppColor('#ff9500')"></div> <!-- Orange -->
+					<div class="swatch" style="background:#ffcc00" onclick="setAppColor('#ffcc00')"></div> <!-- Yellow -->
+					<div class="swatch" style="background:#34c759" onclick="setAppColor('#34c759')"></div> <!-- Green -->
+					<div class="swatch" style="background:#5ac8fa" onclick="setAppColor('#5ac8fa')"></div> <!-- Cyan -->
+
+					<div class="swatch" style="background:#007aff" onclick="setAppColor('#007aff')"></div>
+					<div class="swatch" style="background:#8b5cf6" onclick="setAppColor('#8b5cf6')"></div>
+					<div class="swatch" style="background:#f43f5e" onclick="setAppColor('#f43f5e')"></div>
+					<div class="swatch" style="background:#10b981" onclick="setAppColor('#10b981')"></div>
+					<div class="swatch" style="background:#06b6d4" onclick="setAppColor('#06b6d4')"></div>
+
+                    <div class="swatch" style="background:#16a34a" onclick="setAppColor('#16a34a')"></div> <!-- Green -->
+
+					<div>NEW<br>→</div>
+
+                    <div class="swatch" style="background:#ef4444" onclick="setAppColor('#ef4444')"></div> <!-- Red -->
+                    <div class="swatch" style="background:#f97316" onclick="setAppColor('#f97316')"></div> <!-- Orange -->
+                    <div class="swatch" style="background:#eab308" onclick="setAppColor('#eab308')"></div> <!-- Yellow -->
+                    <div class="swatch" style="background:#22c55e" onclick="setAppColor('#22c55e')"></div> <!-- Green -->
+                    <div class="swatch" style="background:#06b6d4" onclick="setAppColor('#06b6d4')"></div> <!-- Cyan -->
+                    <div class="swatch" style="background:#3b82f6" onclick="setAppColor('#3b82f6')"></div> <!-- Blue -->
+                    <div class="swatch" style="background:#a855f7" onclick="setAppColor('#a855f7')"></div> <!-- Purple -->
+                    <div class="swatch" style="background:#ec4899" onclick="setAppColor('#ec4899')"></div> <!-- Pink -->
+                </div>
+
+                <!-- Sliders -->
+                <div class="slider-container">
+                    <div class="slider-header">
+                        <span class="slider-label">Overlay Opacity</span>
+                        <span class="slider-val" id="alphaDisp">100 (39%)</span>
+                    </div>
+                    <input type="range" id="alphaRange" min="10" max="255" value="100">
+                </div>
+
+                <div class="slider-container">
+                    <div class="slider-header">
+                        <span class="slider-label">Minimum Size</span>
+                        <span class="slider-val" id="minRadDisp">20px</span>
+                    </div>
+                    <input type="range" id="minRadiusRange" min="10" max="200" step="5" value="20">
+                </div>
+
+                <div class="slider-container">
+                    <div class="slider-header">
+                        <span class="slider-label">Maximum Size</span>
+                        <span class="slider-val" id="maxRadDisp">380px</span>
+                    </div>
+                    <input type="range" id="maxRadiusRange" min="50" max="600" step="5" value="380">
+                </div>
+
+                <div class="toggle-row">
+                    <label class="chk-container">
+                        <input type="checkbox" id="chkBorder" checked onchange="updateState()">
+                        <span class="slider-label">Outer Border Ring</span>
+                    </label>
+                </div>
+            </div>
+
+            <!-- Presets Section -->
+            <div class="section">
+                <div class="section-header">
+                    <span class="section-label">Breathing Presets</span>
+                    <button class="btn-sm-action" onclick="addPreset()">+ New</button>
+                </div>
+
+                <div id="presetList" class="preset-list"></div>
+
+                <div class="timing-grid">
+                    <div class="t-group"> <label>Inhale (s)</label> <input type="number" id="t_inhale" step="0.5"> </div>
+                    <div class="t-group"> <label>Hold (s)</label> <input type="number" id="t_holdin" step="0.5"> </div>
+                    <div class="t-group"> <label>Exhale (s)</label> <input type="number" id="t_exhale" step="0.5"> </div>
+                    <div class="t-group"> <label>Hold (s)</label> <input type="number" id="t_holdex" step="0.5"> </div>
+                </div>
+            </div>
+
+            <!-- Config Output Section -->
+            <div class="section">
+                <div class="section-header">
+                    <span class="section-label">Generated Config</span>
+                </div>
+                <textarea id="configOutput" class="code-display-area" readonly spellcheck="false"></textarea>
+            </div>
+
+        </div>
+
+        <!-- STICKY FOOTER -->
+        <div class="footer">
+            <button class="btn-primary" onclick="copyCode()">
+                <!-- MD3 Icon: Content Copy -->
+                <svg id="copyIcon" viewBox="0 -960 960 960" fill="currentColor" width="20" height="20"><path d="M360-240q-33 0-56.5-23.5T280-320v-480q0-33 23.5-56.5T360-880h360q33 0 56.5 23.5T800-800v480q0 33-23.5 56.5T720-240H360Zm0-80h360v-480H360v480ZM200-80q-33 0-56.5-23.5T120-160v-560h80v560h440v80H200Zm160-240v-480 480Z"/></svg>
+                <span id="copyText">Copy Config to Clipboard</span>
+            </button>
+        </div>
+
+    </div>
+
+    <script>
+        // --- State ---
+        const state = {
+            activePreset: 'Normal',
+            bg: { type: 'color', value: '#0f0f10', img: null },
+            settings: {
+                r: 26, g: 115, b: 232, alpha: 100, // Google blue
+                maxRadius: 360, minRadius: 40,
+                showBorder: true
+            },
+            presets: {
+                'Normal': { inhale: 4.0, holdIn: 1.0, exhale: 4.0, holdEx: 1.0 },
+                'Focus':  { inhale: 4.0, holdIn: 7.0, exhale: 8.0, holdEx: 0.0 },
+                'Quick':  { inhale: 2.0, holdIn: 0.0, exhale: 2.0, holdEx: 0.0 }
+            }
+        };
+
+        // --- Panel Logic ---
+        const sidebar = document.getElementById('sidebar');
+        let mode = 'right';
+
+        function setMode(m) {
+            mode = m; sidebar.className = ''; sidebar.style.cssText = '';
+            if (m==='right') sidebar.classList.add('fixed-right');
+            else if (m==='left') sidebar.classList.add('fixed-left');
+            else if (m==='float') {
+                sidebar.classList.add('floating');
+                sidebar.style.top = '100px'; sidebar.style.left = '100px';
+            }
+        }
+
+        // Dragging
+        const header = document.getElementById('panel-header');
+        let isDragging=false, dragOff={x:0,y:0};
+        header.addEventListener('mousedown', e => {
+            if(mode!=='float') return;
+            isDragging=true;
+            const r = sidebar.getBoundingClientRect();
+            dragOff.x = e.clientX - r.left; dragOff.y = e.clientY - r.top;
+            document.addEventListener('mousemove', onDrag);
+            document.addEventListener('mouseup', stopDrag);
+        });
+        function onDrag(e) {
+            if(!isDragging) return;
+            sidebar.style.left = (e.clientX-dragOff.x)+'px';
+            sidebar.style.top = (e.clientY-dragOff.y)+'px';
+        }
+        function stopDrag() { isDragging=false; document.removeEventListener('mousemove', onDrag); document.removeEventListener('mouseup', stopDrag); }
+
+        // --- Canvas Sync ---
+        const canvas = document.getElementById('canvas');
+        const ctx = canvas.getContext('2d');
+        let renderW=1920, renderH=1080;
+
+        function updateCanvasSize() {
+            if (state.bg.type==='image' && state.bg.img) {
+                renderW = state.bg.img.naturalWidth; renderH = state.bg.img.naturalHeight;
+            } else {
+                const dpr = window.devicePixelRatio || 1;
+                renderW = window.innerWidth * dpr; renderH = window.innerHeight * dpr;
+            }
+            canvas.width = renderW; canvas.height = renderH;
+        }
+        window.addEventListener('resize', updateCanvasSize);
+
+        let animState = 'INHALE';
+        let stateStart = 0;
+        function lerp(a, b, t) { return a + (b - a) * t; }
+
+        function animate(time) {
+            if (!stateStart) stateStart = time;
+            const p = state.presets[state.activePreset];
+            const elapsed = (time - stateStart) / 1000;
+            let curR = state.settings.minRadius;
+
+            if (animState === 'INHALE') {
+                if (elapsed >= p.inhale) { animState='HOLD_IN'; stateStart=time; curR=state.settings.maxRadius; }
+                else curR = lerp(state.settings.minRadius, state.settings.maxRadius, elapsed/p.inhale);
+            } else if (animState === 'HOLD_IN') {
+                curR = state.settings.maxRadius;
+                if (elapsed >= p.holdIn) { animState='EXHALE'; stateStart=time; }
+            } else if (animState === 'EXHALE') {
+                if (elapsed >= p.exhale) { animState='HOLD_EX'; stateStart=time; curR=state.settings.minRadius; }
+                else curR = lerp(state.settings.maxRadius, state.settings.minRadius, elapsed/p.exhale);
+            } else if (animState === 'HOLD_EX') {
+                curR = state.settings.minRadius;
+                if (elapsed >= p.holdEx) { animState='INHALE'; stateStart=time; }
+            }
+
+            ctx.clearRect(0,0,renderW,renderH);
+
+            // BG
+            if(state.bg.type==='image' && state.bg.img) ctx.drawImage(state.bg.img,0,0);
+            else { ctx.fillStyle=state.bg.value; ctx.fillRect(0,0,renderW,renderH); }
+
+            // Overlay
+            const cx = renderW/2, cy = renderH/2;
+            const { r,g,b,alpha,showBorder,maxRadius } = state.settings;
+
+            ctx.fillStyle = `rgba(${r},${g},${b},${alpha/255})`;
+            ctx.beginPath(); ctx.arc(cx,cy,curR,0,Math.PI*2); ctx.fill();
+
+            if(showBorder) {
+                ctx.strokeStyle = `rgba(${r},${g},${b},0.3)`; // Slightly increased visibility
+                ctx.lineWidth = 2;
+                ctx.beginPath(); ctx.arc(cx,cy,maxRadius,0,Math.PI*2); ctx.stroke();
+            }
+
+            requestAnimationFrame(animate);
+        }
+        requestAnimationFrame(animate);
+
+        // --- Interaction ---
+
+        // Background Logic
+        function setBgColor(val, hideToast = true) {
+            if(!val.startsWith('#')) {
+                // simple sanitize
+                 if(val.length === 3 || val.length === 6) val = '#'+val;
+            }
+            state.bg.type='color'; state.bg.value=val; state.bg.img=null;
+
+            // Sync Inputs
+            document.getElementById('bgHex').value = val;
+            document.getElementById('bgColorPicker').value = val;
+
+            // Hide toast on interaction
+            if(hideToast) document.getElementById('toast').style.opacity='0';
+
+            updateCanvasSize();
+        }
+
+        function loadImage(file) {
+            if(!file) return;
+            const img = new Image();
+            const r = new FileReader();
+            r.onload = e => {
+                img.onload=()=>{
+                    state.bg.type='image';
+                    state.bg.img=img;
+                    updateCanvasSize();
+                    // Hide toast on interaction
+                    document.getElementById('toast').style.opacity='0';
+                };
+                img.src=e.target.result;
+            };
+            r.readAsDataURL(file);
+        }
+        document.getElementById('fileInput').addEventListener('change', e=>loadImage(e.target.files[0]));
+        window.addEventListener('paste', e=>{ const i=e.clipboardData.items[0]; if(i?.type.includes('image')) loadImage(i.getAsFile()); });
+        window.addEventListener('drop', e=>{ e.preventDefault(); if(e.dataTransfer.files[0]?.type.startsWith('image/')) loadImage(e.dataTransfer.files[0]); });
+        window.addEventListener('dragover', e=>e.preventDefault());
+
+        // App Overlay Logic
+        function setAppColor(hex) {
+            if(!hex.startsWith('#')) hex = '#'+hex.replace('#','');
+            // Full hex expansion
+            if(hex.length===4) hex= '#' + hex[1]+hex[1] + hex[2]+hex[2] + hex[3]+hex[3];
+
+            const n=parseInt(hex.slice(1),16);
+            state.settings.r=(n>>16)&255; state.settings.g=(n>>8)&255; state.settings.b=n&255;
+
+            document.getElementById('appHex').value = hex;
+            document.getElementById('appColorPicker').value = hex;
+            updateCode();
+        }
+
+        function updateState() {
+            const alphaVal = parseInt(document.getElementById('alphaRange').value);
+            state.settings.alpha = alphaVal;
+
+            // Update display with percentage
+            const percentage = Math.round((alphaVal / 255) * 100);
+            document.getElementById('alphaDisp').innerText = `${alphaVal} (${percentage}%)`;
+
+            state.settings.minRadius = parseInt(document.getElementById('minRadiusRange').value);
+            state.settings.maxRadius = parseInt(document.getElementById('maxRadiusRange').value);
+            state.settings.showBorder = document.getElementById('chkBorder').checked;
+
+            document.getElementById('minRadDisp').innerText = state.settings.minRadius + 'px';
+            document.getElementById('maxRadDisp').innerText = state.settings.maxRadius + 'px';
+            updateCode();
+        }
+
+        document.getElementById('alphaRange').addEventListener('input', updateState);
+        document.getElementById('minRadiusRange').addEventListener('input', updateState);
+        document.getElementById('maxRadiusRange').addEventListener('input', updateState);
+
+        // Presets Logic
+        function renderPresets() {
+            const list = document.getElementById('presetList');
+            list.innerHTML = '';
+            Object.keys(state.presets).forEach(name => {
+                const isActive = name === state.activePreset;
+                const div = document.createElement('div');
+                div.className = `preset-item ${isActive?'active':''}`;
+                div.onclick = (e) => {
+                    if(e.target.closest('.btn-icon-only')) return;
+                    state.activePreset = name; animState='INHALE'; stateStart=0;
+                    renderPresets(); syncTimings(); updateCode();
+                };
+
+                // MD3 Icon: Delete (Close)
+                const delBtn = name !== 'Normal' ? `
+                    <button class="btn-icon-only" onclick="delPreset('${name}')" title="Delete Preset">
+                        <svg viewBox="0 -960 960 960" fill="currentColor" width="20" height="20"><path d="M280-120q-33 0-56.5-23.5T200-200v-520h-40v-80h200v-40h240v40h200v80h-40v520q0 33-23.5 56.5T680-120H280Zm400-600H280v520h400v-520ZM360-280h80v-360h-80v360Zm160 0h80v-360h-80v360ZM280-720v520-520Z"/></svg>
+                    </button>
+                ` : '';
+
+                div.innerHTML = `
+                    <div class="radio-indicator"></div>
+                    <span class="preset-name">${name}</span>
+                    ${delBtn}
+                `;
+                list.appendChild(div);
+            });
+        }
+
+        function syncTimings() {
+            const p = state.presets[state.activePreset];
+            document.getElementById('t_inhale').value = p.inhale;
+            document.getElementById('t_holdin').value = p.holdIn;
+            document.getElementById('t_exhale').value = p.exhale;
+            document.getElementById('t_holdex').value = p.holdEx;
+        }
+
+        ['inhale','holdIn','exhale','holdEx'].forEach(k => {
+            document.getElementById('t_'+k.toLowerCase()).addEventListener('input', e => {
+                state.presets[state.activePreset][k] = parseFloat(e.target.value)||0; updateCode();
+            });
+        });
+
+        function addPreset() {
+            const n = prompt("Preset Name", "Custom");
+            if(n && !state.presets[n]) {
+                state.presets[n] = {inhale:4,holdIn:1,exhale:4,holdEx:1};
+                state.activePreset = n; renderPresets(); syncTimings(); updateCode();
+            }
+        }
+        window.delPreset = (n) => {
+            if(confirm('Delete preset "'+n+'"?')) {
+                delete state.presets[n];
+                if(state.activePreset===n) state.activePreset=Object.keys(state.presets)[0];
+                renderPresets(); syncTimings(); updateCode();
+            }
+        }
+
+        // Code Generation
+        function updateCode() {
+            let txt = `[Settings]\nActivePreset=${state.activePreset}\nShowBorder=${state.settings.showBorder?1:0}\nAlpha=${state.settings.alpha}\nColorR=${state.settings.r}\nColorG=${state.settings.g}\nColorB=${state.settings.b}\nMaxRadius=${state.settings.maxRadius}\nMinRadius=${state.settings.minRadius}\n\n`;
+            Object.keys(state.presets).forEach(n => {
+                const p = state.presets[n];
+                txt += `[${n}]\nInhale=${p.inhale.toFixed(1)}\nHoldIn=${p.holdIn.toFixed(1)}\nExhale=${p.exhale.toFixed(1)}\nHoldEx=${p.holdEx.toFixed(1)}\n\n`;
+            });
+            document.getElementById('configOutput').value = txt;
+        }
+
+        function copyCode() {
+            document.getElementById('configOutput').select();
+            document.execCommand('copy');
+            const btn = document.querySelector('.btn-primary');
+            const txt = document.getElementById('copyText');
+            const icon = document.getElementById('copyIcon');
+
+            const originalTxt = txt.innerText;
+
+            btn.classList.add('success');
+            txt.innerText = "Copied to Clipboard";
+            // MD3 Icon: Check
+            icon.innerHTML = '<path d="M382-240 154-468l57-57 171 171 367-367 57 57-424 424Z"/>';
+
+            setTimeout(() => {
+                btn.classList.remove('success');
+                txt.innerText = originalTxt;
+                // MD3 Icon: Content Copy (Restore)
+                icon.innerHTML = '<path d="M360-240q-33 0-56.5-23.5T280-320v-480q0-33 23.5-56.5T360-880h360q33 0 56.5 23.5T800-800v480q0 33-23.5 56.5T720-240H360Zm0-80h360v-480H360v480ZM200-80q-33 0-56.5-23.5T120-160v-560h80v560h440v80H200Zm160-240v-480 480Z"/>';
+            }, 2000);
+        }
+
+        // Init
+        setAppColor('#1A73E8');
+        setBgColor('#FFFFFF', false); // Don't hide toast on init
+        renderPresets(); syncTimings(); updateCode(); updateCanvasSize();
+
+    </script>
+</body>
+</html>
