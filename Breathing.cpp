@@ -20,6 +20,7 @@
 #pragma comment (lib, "d2d1.lib")
 #pragma comment (lib, "dcomp.lib")
 #pragma comment (lib, "winmm.lib")
+#pragma comment (lib, "advapi32.lib") // For Registry operations
 
 // Safe Release helper
 template<class Interface>
@@ -36,6 +37,7 @@ inline void SafeRelease(Interface** ppInterfaceToRelease) {
 #define ID_TOGGLE_BORDER 9006 // ID for Border Toggle
 #define ID_EDIT_CONFIG 9007
 #define ID_OPEN_LOCATION 9008
+#define ID_TOGGLE_STARTUP 9009 // ID for Startup Toggle
 #define ID_PRESET_BASE 10000 // Base ID for Dynamic Presets
 
 // Global variables
@@ -97,6 +99,10 @@ void CleanupDirectX();
 void ResetAnimation();
 float GetIniFloat(const char* section, const char* key, float defaultValue, const char* path);
 HICON CreateProceduralIcon(int size);
+
+// Startup helper functions
+bool IsStartupEnabled();
+void SetStartup(bool enable);
 
 int WINAPI WinMain(HINSTANCE hInstance, HINSTANCE hPrevInstance, LPSTR lpCmdLine, int nCmdShow) {
     SetProcessDpiAwarenessContext(DPI_AWARENESS_CONTEXT_PER_MONITOR_AWARE_V2);
@@ -470,6 +476,45 @@ void SaveSetting(const char* key, int value) {
     WritePrivateProfileStringA("Settings", key, buffer, path);
 }
 
+// Startup helper functions implementation
+bool IsStartupEnabled() {
+    HKEY hKey;
+    const char* keyPath = "Software\\Microsoft\\Windows\\CurrentVersion\\Run";
+    if (RegOpenKeyExA(HKEY_CURRENT_USER, keyPath, 0, KEY_READ, &hKey) == ERROR_SUCCESS) {
+        char value[MAX_PATH];
+        DWORD valueSize = sizeof(value);
+        DWORD type = REG_SZ;
+        LONG result = RegQueryValueExA(hKey, "BreathingOverlay", 0, &type, (LPBYTE)value, &valueSize);
+        RegCloseKey(hKey);
+
+        if (result == ERROR_SUCCESS) {
+            char currentPath[MAX_PATH];
+            if (GetModuleFileNameA(NULL, currentPath, MAX_PATH) != 0) {
+                // Check if paths match (case insensitive comparison generally safer on Windows,
+                // but exact match is fine for this context)
+                return _stricmp(value, currentPath) == 0;
+            }
+        }
+    }
+    return false;
+}
+
+void SetStartup(bool enable) {
+    HKEY hKey;
+    const char* keyPath = "Software\\Microsoft\\Windows\\CurrentVersion\\Run";
+    if (RegOpenKeyExA(HKEY_CURRENT_USER, keyPath, 0, KEY_WRITE, &hKey) == ERROR_SUCCESS) {
+        if (enable) {
+            char currentPath[MAX_PATH];
+            if (GetModuleFileNameA(NULL, currentPath, MAX_PATH) != 0) {
+                RegSetValueExA(hKey, "BreathingOverlay", 0, REG_SZ, (LPBYTE)currentPath, (DWORD)(strlen(currentPath) + 1));
+            }
+        } else {
+            RegDeleteValueA(hKey, "BreathingOverlay");
+        }
+        RegCloseKey(hKey);
+    }
+}
+
 void ResetAnimation() {
     g_State = INHALE;
     g_StateTimer = 0.0f;
@@ -624,6 +669,11 @@ LRESULT CALLBACK WndProc(HWND hwnd, UINT msg, WPARAM wParam, LPARAM lParam) {
             if (g_Config.visuals.showBorder) borderFlags |= MF_CHECKED;
             AppendMenu(hMenu, borderFlags, ID_TOGGLE_BORDER, "Show Border Ring");
 
+            // Toggle Startup Item
+            UINT startupFlags = MF_STRING;
+            if (IsStartupEnabled()) startupFlags |= MF_CHECKED;
+            AppendMenu(hMenu, startupFlags, ID_TOGGLE_STARTUP, "Run at Startup");
+
             // New Separator & Items
             AppendMenu(hMenu, MF_SEPARATOR, 0, NULL);
             AppendMenu(hMenu, MF_STRING, ID_OPEN_LOCATION, "Open App Location");
@@ -666,6 +716,10 @@ LRESULT CALLBACK WndProc(HWND hwnd, UINT msg, WPARAM wParam, LPARAM lParam) {
                     g_Config.visuals.showBorder = !g_Config.visuals.showBorder;
                     SaveSetting("ShowBorder", g_Config.visuals.showBorder ? 1 : 0);
                     // No need for ResetAnimation, just redraw next frame
+                    break;
+
+                case ID_TOGGLE_STARTUP:
+                    SetStartup(!IsStartupEnabled());
                     break;
 
                 case ID_EDIT_CONFIG: {
