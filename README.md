@@ -6,6 +6,9 @@ A tiny, "Zero-Dependency" breathing exercise overlay for Windows.
 
 This project is a personal tool built for mental health and focus. It is completely free, open-source, and not intended for sale or commercial use. I built it to help myself, and I'm sharing it to help you.
 
+![Screenshot of Breathing app overlay](screenshot-breathing.gif)
+![Screenshot of Breathing config generator](screenshot-config.png)
+
 ## **The Story**
 
 I was searching for a simple overlay app that stays **Always-on-Top** to help me fix my breathing while using my laptop.
