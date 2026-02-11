@@ -10,6 +10,8 @@
 #include <cmath>
 #include <cstdio>
 #include <vector>
+#include <sstream>
+#include <iomanip>
 #include <algorithm> // For std::find
 
 #pragma comment (lib, "user32.lib")
@@ -594,6 +596,7 @@ void Render() {
         SafeRelease(&pFillBrush);
     }
 
+
     if (g_Config.visuals.showBorder) {
         ID2D1SolidColorBrush* pBorderBrush = nullptr;
         pD2DContext->CreateSolidColorBrush(D2D1::ColorF(r, g, b, 40.0f / 255.0f), &pBorderBrush);
@@ -624,10 +627,84 @@ void CleanupDirectX() {
     SafeRelease(&pD3DDevice);
 }
 
+// --- ALIGNMENT HELPER ---
+std::vector<std::wstring> BuildAlignedMenuLabels(
+    const std::vector<std::pair<std::string, std::vector<float>>>& presets)
+{
+    std::vector<std::wstring> result;
+    const wchar_t SP = 0x2007; // Figure Space (matches digit width)
+    const wchar_t PS = 0x2008; // Punctuation Space (matches dot width)
+
+    // Stats per column: [MaxIntLen, MaxFracLen]
+    int stats[4][2] = { 0 };
+
+    // 1. Analyze Numbers
+    std::vector<std::vector<std::pair<std::wstring, std::wstring>>> parsed(presets.size());
+    for (size_t r = 0; r < presets.size(); r++) {
+        for (int c = 0; c < 4; c++) {
+            // Format & Clean
+            wchar_t buf[16]; swprintf_s(buf, L"%.2f", presets[r].second[c]);
+            std::wstring s = buf;
+            s.erase(s.find_last_not_of(L'0') + 1);
+            if (s.back() == L'.') s.pop_back();
+
+            // Split
+            size_t dot = s.find(L'.');
+            std::wstring iPart = (dot == std::wstring::npos) ? s : s.substr(0, dot);
+            std::wstring fPart = (dot == std::wstring::npos) ? L"" : s.substr(dot + 1);
+
+            if ((int)iPart.length() > stats[c][0]) stats[c][0] = (int)iPart.length();
+            if ((int)fPart.length() > stats[c][1]) stats[c][1] = (int)fPart.length();
+
+            parsed[r].push_back({iPart, fPart});
+        }
+    }
+
+    // 2. Build Strings (Flush Right / Decimal Aligned)
+    for (size_t r = 0; r < presets.size(); r++) {
+        std::wstring name(presets[r].first.begin(), presets[r].first.end());
+        std::wstringstream ss;
+        ss << std::left << std::setw(15) << name << L"\t";
+
+        for (int c = 0; c < 4; c++) {
+            auto& parts = parsed[r][c];
+            int padI = stats[c][0] - (int)parts.first.length();
+            int padF = stats[c][1] - (int)parts.second.length();
+            bool missDot = (stats[c][1] > 0 && parts.second.empty());
+
+            // Prepend Padding (Integer Spaces + Fraction Spaces + Dot Space)
+            // This pushes the number to the right, aligning the implied decimal point
+            for (int k=0; k<padI; k++) ss << SP;
+            for (int k=0; k<padF; k++) ss << SP;
+            if (missDot) ss << PS;
+
+            ss << parts.first;
+            if (!parts.second.empty()) ss << L'.' << parts.second;
+
+            if (c < 3) ss << L"   -   ";
+        }
+        result.push_back(ss.str());
+    }
+    return result;
+}
+// -------------------------------------
+
 LRESULT CALLBACK WndProc(HWND hwnd, UINT msg, WPARAM wParam, LPARAM lParam) {
     switch (msg) {
     case WM_NCHITTEST:
         return HTTRANSPARENT;
+
+    // --- EVENT-DRIVEN Z-ORDER PROTECTION ---
+    // This message is sent BEFORE the window position changes.
+    // It allows us to intercept and modify the "proposed" new state.
+    case WM_WINDOWPOSCHANGING: {
+        WINDOWPOS* pPos = (WINDOWPOS*)lParam;
+        // 1. Force the Z-Order to always be HWND_TOPMOST (-1)
+        pPos->hwndInsertAfter = HWND_TOPMOST;
+        // 2. Add SWP_NOOWNERZORDER flag to prevent it from inheriting owner's Z-order (if any)
+        pPos->flags |= SWP_NOOWNERZORDER;
+        return 0; // Return 0 to indicate we handled it
+    }
 
     case WM_TRAYICON:
         if (lParam == WM_RBUTTONUP) {
@@ -642,26 +719,31 @@ LRESULT CALLBACK WndProc(HWND hwnd, UINT msg, WPARAM wParam, LPARAM lParam) {
                 lstrcatA(path, "Breathing-config.ini");
             }
 
-            // DYNAMIC PRESET MENU
-            for (size_t i = 0; i < g_PresetNames.size(); i++) {
-                const char* name = g_PresetNames[i].c_str();
+            // --- UPDATED DYNAMIC PRESET MENU LOGIC ---
 
-                float inh = GetIniFloat(name, "Inhale", 4.0f, path);
-                float hIn = GetIniFloat(name, "HoldIn", 4.0f, path);
-                float exh = GetIniFloat(name, "Exhale", 4.0f, path);
-                float hEx = GetIniFloat(name, "HoldEx", 4.0f, path);
+            // 1. Gather Data
+            std::vector<std::pair<std::string, std::vector<float>>> presetsData;
+            for (const auto& name : g_PresetNames) {
+                float inh = GetIniFloat(name.c_str(), "Inhale", 4.0f, path);
+                float hIn = GetIniFloat(name.c_str(), "HoldIn", 4.0f, path);
+                float exh = GetIniFloat(name.c_str(), "Exhale", 4.0f, path);
+                float hEx = GetIniFloat(name.c_str(), "HoldEx", 4.0f, path);
+                presetsData.push_back({ name, {inh, hIn, exh, hEx} });
+            }
 
-                char label[128];
-                sprintf_s(label, "%s (%.0f-%.0f-%.0f-%.0f)", name, inh, hIn, exh, hEx);
+            // 2. Build Aligned Strings (Using Wide Chars)
+            std::vector<std::wstring> menuLabels = BuildAlignedMenuLabels(presetsData);
 
+            // 3. Add to Menu
+            for (size_t i = 0; i < menuLabels.size(); i++) {
                 UINT flags = MF_STRING;
-                if (strcmp(g_Config.activePreset, name) == 0) {
+                if (strcmp(g_Config.activePreset, g_PresetNames[i].c_str()) == 0) {
                     flags |= MF_CHECKED;
                 }
-
-                // Assign ID starting from ID_PRESET_BASE
-                AppendMenu(hMenu, flags, ID_PRESET_BASE + i, label);
+                // IMPORTANT: Use AppendMenuW for Unicode support
+                AppendMenuW(hMenu, flags, ID_PRESET_BASE + i, menuLabels[i].c_str());
             }
+            // -----------------------------------------
 
             AppendMenu(hMenu, MF_SEPARATOR, 0, NULL);
             // Toggle Border Item
